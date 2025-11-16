@@ -1,14 +1,16 @@
 'use strict';
 
 const db = require('./db.js');
-const server = require('./http.js');
-const PORT = 8000;
+// const server = require('./http.js');
+const server = require('./ws.js');
+const staticServer = require('./static.js');
 
 const routing = {
-  users: require('./user.js'),
-  countries: db('countries'),
-  cities: db('cities'),
+  user: require('./user.js'),
+  country: db('countries'),
+  citiy: db('cities'),
   session: db('sessions'),
 };
 
-server(routing, PORT);
+staticServer('./static', 8000);
+server(routing, 8001);

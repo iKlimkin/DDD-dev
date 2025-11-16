@@ -29,7 +29,7 @@ const db = (table) => ({
 
   async read(id, fields = ['*']) {
     const names = fields.join(', ');
-    const sql = `SELECT ${names}  FROM ${table}`;
+    const sql = `SELECT ${names} FROM ${table}`;
     // eslint-disable-next-line no-unused-vars
     const mapper = ({ password, ...row }) => row;
     if (!id) {

@@ -25,6 +25,11 @@ const usersService = {
   async delete(id) {
     return await users.delete(id);
   },
+  async find(mask) {
+    const sql = `SELECT id, login FROM users WHERE login LIKE $1`;
+    const result = await users.query(sql, [`%${mask}%`]);
+    return result.rows;
+  },
 };
 
 module.exports = usersService;
