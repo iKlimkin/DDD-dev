@@ -1,13 +1,11 @@
 'use strict';
 
-const express = require('express');
 const pg = require('pg');
-const { hash, verify } = require('./hash.js');
+const { hash } = require('./hash.js');
+const bodyParser = require('./body.js');
+const http = require('node:http');
 
 const PORT = 8000;
-
-const app = express();
-app.use(express.json());
 
 const pool = new pg.Pool({
   host: 'localhost',
@@ -17,109 +15,59 @@ const pool = new pg.Pool({
   database: 'example',
 });
 
-const methods = {
-  get: {
-    '/users': (req, res) => {
-      console.log(`${req.socket.remoteAddress} - ${req.method} ${req.url}`);
-      pool.query(`SELECT * FROM users`, (err, data) => {
-        if (err) throw err;
-        res.status(200).json(data.rows.map(({ id, login }) => ({ id, login })));
-      });
-    },
-    '/user/:id': (req, res) => {
-      const id = parseInt(req.params.id, 10);
-      console.log(
-        `${req.socket.remoteAddress} - ${req.method} ${req.url} ${id}`,
-      );
-      pool.query(`SELECT * FROM users WHERE id = $1`, [id], (err, data) => {
-        if (err) throw err;
-        res.status(200).json(data.rows.map(({ id, login }) => ({ id, login })));
-      });
-    },
+const listener = (() => [
+  PORT,
+  () => {
+    console.log(`Server is running on port ${PORT}`);
   },
-  post: {
-    '/user': async (req, res) => {
-      const { login, password } = req.body;
-      console.log(
-        `${req.socket.remoteAddress} - ${req.method} ${req.url} ${login}`,
-      );
-      const sql = `INSERT INTO users (login, password) VALUES ($1, $2)`;
+])();
+
+const routing = {
+  user: {
+    post: async ({ login, password }) => {
       const passwordHash = await hash(password);
-      pool.query(sql, [login, passwordHash], (err, data) => {
-        if (err) throw err;
-        res.status(200).json({ created: data.rowCount });
-      });
+      return pool.query(`INSERT INTO users (login, password) VALUES ($1, $2)`, [
+        login,
+        passwordHash,
+      ]);
     },
-  },
-  put: {
-    '/user/:id': (req, res) => {
-      const id = parseInt(req.params.id, 10);
-      const { login, password } = req.body;
-      console.log(
-        `${req.socket.remoteAddress} - ${req.method} ${req.url} ${id}`,
-      );
-      const sqlSelect = `SELECT password FROM users WHERE id = $1`;
-      pool.query(sqlSelect, [id], async (err, data) => {
-        if (err) throw err;
-        if (!data.rowCount) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-        const existingHash = data.rows[0].password;
-        const valid = await verify(password, existingHash);
-        if (!valid) {
-          res.status(401).json({ error: 'Invalid password' });
-          return;
-        }
-        const newPasswordHash = await hash(password);
-        const sqlUpdate = `UPDATE users SET login = $1, password = $2 WHERE id = $3`;
-        pool.query(sqlUpdate, [login, newPasswordHash, id], (err, data) => {
-          if (err) throw err;
-          res.status(200).json({ id, updated: data.rowCount });
-        });
-      });
+    get: async (id) => {
+      if (!id) {
+        const result = await pool.query(`SELECT id, login FROM users`);
+        return result.rows;
+      }
+      const sql = `SELECT id, login FROM users WHERE id = $1`;
+      const result = await pool.query(sql, [id]);
+      return result.rows[0];
     },
-  },
-  delete: {
-    '/user/:id': (req, res) => {
-      const id = parseInt(req.params.id, 10);
-      const { password } = req.body;
-      console.log(
-        `${req.socket.remoteAddress} - ${req.method} ${req.url} ${id}`,
-      );
-      const selectSql = `SELECT password FROM users WHERE id = $1`;
-      pool.query(selectSql, [id], async (err, data) => {
-        if (err) throw err;
-        if (!data.rowCount) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-        const existingHash = data.rows[0].password;
-        const valid = await verify(password, existingHash);
-        if (!valid) {
-          res.status(401).json({ error: 'Invalid password' });
-          return;
-        }
-        const sql = `DELETE FROM users WHERE id = $1`;
-        pool.query(sql, [id], (err, data) => {
-          if (err) throw err;
-          res.status(200).json({ deleted: data.rowCount });
-        });
-      });
+    put: async (id, { login, password }) => {
+      const sql = `UPDATE users SET login = $1, password = $2 WHERE id = $3`;
+      return pool.query(sql, [login, password, id]);
+    },
+    delete: async (id) => {
+      const sql = `DELETE FROM users WHERE id = $1`;
+      return pool.query(sql, [id]);
     },
   },
 };
 
-Object.entries(methods).forEach(([method, routes]) => {
-  Object.entries(routes).forEach(([path, handler]) => {
-    app[method](path, async (req, res) => {
-      console.log(`${req.socket.remoteAddress} - ${req.method} ${req.url}`);
-      await handler(req, res);
-    });
-  });
-});
-
-app.listen(PORT, (err) => {
-  if (err) throw err;
-  console.log(`Server is running on port ${PORT}`);
-});
+http
+  .createServer(async (req, res) => {
+    const { method, url, socket } = req;
+    const [path, id] = url.substring(1).split('/');
+    const entity = routing[path];
+    if (!entity) return void res.end('Not found');
+    const handler = entity[method.toLowerCase()];
+    if (!handler) return void res.end('Method not allowed');
+    const src = handler.toString();
+    const signature = src.substring(0, src.indexOf(')'));
+    const args = [];
+    if (signature.includes('id')) args.push(id);
+    if (signature.includes('{')) args.push(await bodyParser(req));
+    console.log(
+      `${socket.remoteAddress} - ${method} ${url} ${args.join(', ')}`,
+    );
+    const result = await handler(...args);
+    res.end(JSON.stringify(result));
+  })
+  .listen(...listener);
