@@ -11,5 +11,8 @@
     "eslint": "^9.39.1",
     "eslint-config-metarhia": "^9.1.3",
     "prettier": "^3.6.2"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
   }
 }
