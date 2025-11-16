@@ -1,5 +1,6 @@
 'use strict';
 
+// connect to debugger server
 const socket = new WebSocket('ws://127.0.0.1:8001/');
 
 const scaffold = (structure) => {
@@ -26,17 +27,17 @@ const scaffold = (structure) => {
 
 const api = scaffold({
   user: {
-    create: 1,
-    read: 1,
-    update: 1,
-    delete: 1,
-    find: 1,
+    create: null,
+    read: null,
+    update: null,
+    delete: null,
+    find: null,
   },
 });
 
-socket.addEventListener('open', async (event) => {
+socket.onopen = async (event) => {
   console.log('event', event);
-  console.log('api', api);
-  const data = await api.user.read(1);
+  console.log('WebSocket connected');
+  const data = await api.user.read();
   console.log(data);
-});
+};

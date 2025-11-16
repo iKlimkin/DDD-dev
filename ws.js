@@ -14,15 +14,13 @@ const wsServer = (routing, port) => {
       const { name, method, args = [] } = obj;
       const entity = routing[name];
       if (!entity) {
-        return connection.send(JSON.stringify({ error: 'Not found' }), {
-          binary: false,
-        });
+        const error = { error: 'Not found' };
+        return connection.send(JSON.stringify(error), { binary: false });
       }
       const handler = entity[method];
       if (!handler) {
-        return connection.send(JSON.stringify({ error: 'Method not found' }), {
-          binary: false,
-        });
+        const error = { error: 'Method not found' };
+        return connection.send(JSON.stringify(error), { binary: false });
       }
       const json = JSON.stringify(args);
       const params = json.slice(1, json.length - 1);
