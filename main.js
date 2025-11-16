@@ -20,10 +20,12 @@ const crud = {
   delete: 'delete',
 };
 
-const entities = ['user', 'session', 'country', 'city'];
-const routing = Object.fromEntries(
-  entities.map((entity) => [entity, db(`${entity}s`)]),
-);
+const routing = {
+  users: require('./user.js'),
+  countries: db('countries'),
+  cities: db('cities'),
+  session: db('sessions'),
+};
 
 http
   .createServer(async (req, res) => {
