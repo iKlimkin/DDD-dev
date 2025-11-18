@@ -2,7 +2,7 @@
 
 const { Server } = require('ws');
 
-const wsServer = (routing, port) => {
+module.exports = (routing, port) => {
   const wss = new Server({ port }, () => {
     console.log(`WebSocket server is running on port ${port}`);
   });
@@ -37,5 +37,3 @@ const wsServer = (routing, port) => {
     });
   });
 };
-
-module.exports = wsServer;
