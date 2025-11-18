@@ -1,16 +1,23 @@
 'use strict';
-
-const db = require('./db.js');
+const fsp = require('node:fs/promises');
+const path = require('node:path');
 // const server = require('./http.js');
 const server = require('./ws.js');
 const staticServer = require('./static.js');
 
-const routing = {
-  user: require('./user.js'),
-  country: db('countries'),
-  citiy: db('cities'),
-  session: db('sessions'),
-};
+const apiPath = path.join(process.cwd(), './api');
+const routing = {};
 
-staticServer('./static', 8000);
-server(routing, 8001);
+const main = async () => {
+  const files = await fsp.readdir(apiPath);
+  for (const fileName of files) {
+    if (!fileName.endsWith('.js')) continue;
+    const filePath = path.join(apiPath, fileName);
+    const serviceName = path.basename(fileName, '.js');
+    routing[serviceName] = require(filePath);
+  }
+
+  staticServer('./static', 8000);
+  server(routing, 8001);
+};
+main();
