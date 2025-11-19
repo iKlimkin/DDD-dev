@@ -1,20 +1,15 @@
-'use strict';
-
-const db = require('../db');
-const hash = require('../hash');
-
 const users = db('users');
 
-const usersService = {
+({
   async read(id) {
     return await users.read(id, ['id', 'login']);
   },
   async create({ login, password }) {
-    const passwordHash = await hash(password);
+    const passwordHash = await common.hash(password);
     return await users.create({ login, password: passwordHash });
   },
   async update(id, { login, password }) {
-    const passwordHash = await hash(password);
+    const passwordHash = await common.hash(password);
     const exist = await users.read(id, ['id']);
     if (!exist) throw new Error('User not found');
     return await users.update(id, { login, password: passwordHash }, [
@@ -30,6 +25,4 @@ const usersService = {
     const result = await users.query(sql, [`%${mask}%`]);
     return result.rows;
   },
-};
-
-module.exports = usersService;
+});

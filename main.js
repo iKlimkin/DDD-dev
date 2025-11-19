@@ -4,7 +4,11 @@ const path = require('node:path');
 // const server = require('./http.js');
 const server = require('./ws.js');
 const staticServer = require('./static.js');
+const db = require('./db');
+const hash = require('./hash');
+const load = require('./load');
 
+const sandbox = { console, db: Object.freeze(db), common: { hash } };
 const apiPath = path.join(process.cwd(), './api');
 const routing = {};
 
@@ -14,7 +18,7 @@ const main = async () => {
     if (!fileName.endsWith('.js')) continue;
     const filePath = path.join(apiPath, fileName);
     const serviceName = path.basename(fileName, '.js');
-    routing[serviceName] = require(filePath);
+    routing[serviceName] = await load(filePath, sandbox);
   }
 
   staticServer('./static', 8000);

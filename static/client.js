@@ -33,11 +33,21 @@ const api = scaffold({
     delete: null,
     find: null,
   },
+  country: {
+    create: null,
+    read: null,
+    find: null,
+  },
+  city: {
+    create: null,
+    read: null,
+    find: null,
+  },
 });
 
 socket.onopen = async (event) => {
+  console.log('api', api);
   console.log('event', event);
   console.log('WebSocket connected');
-  const data = await api.user.read();
-  console.log(data);
+  // await api.user.read();
 };
