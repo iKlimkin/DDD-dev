@@ -3,6 +3,7 @@
 const http = require('node:http');
 const path = require('node:path');
 const fsp = require('node:fs/promises');
+const console = require('./logger.js');
 
 module.exports = (root, port) => {
   http

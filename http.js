@@ -1,5 +1,6 @@
 'use strict';
 
+const console = require('./logger.js');
 const http = require('node:http');
 const bodyParser = require('./body.js');
 

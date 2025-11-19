@@ -30,14 +30,12 @@ const db = (table) => ({
   async read(id, fields = ['*']) {
     const names = fields.join(', ');
     const sql = `SELECT ${names} FROM ${table}`;
-    // eslint-disable-next-line no-unused-vars
-    const mapper = ({ password, ...row }) => row;
     if (!id) {
       const result = await this.query(sql);
-      return result.rows.map(mapper);
+      return result.rows;
     }
     const result = await this.query(`${sql} WHERE id = $1`, [id]);
-    return result.rows.map(mapper).at(0);
+    return result.rows[0];
   },
 
   async create({ ...record }) {
