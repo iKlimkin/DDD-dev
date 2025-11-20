@@ -14,6 +14,7 @@ module.exports = [
         require: 'readonly',
         module: 'readonly',
         exports: 'readonly',
+        config: 'readonly',
       },
     },
     rules: {

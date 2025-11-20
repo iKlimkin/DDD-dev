@@ -4,10 +4,11 @@ const path = require('node:path');
 // const server = require('./http.js');
 const server = require('./ws.js');
 const staticServer = require('./static.js');
-const db = require('./db.js');
+const config = require('./config.js');
+const db = require('./db.js')(config.db);
 const hash = require('./hash.js');
-const load = require('./load.js');
-const logger = require('./logger.js');
+const load = require('./load.js')(config.sandbox);
+const logger = require('./logger.js')(config.logger.path);
 
 const sandbox = {
   console: Object.freeze(logger),
@@ -26,7 +27,7 @@ const main = async () => {
     routing[serviceName] = await load(filePath, sandbox);
   }
 
-  staticServer('./static', 8000);
-  server(routing, 8001);
+  staticServer('./static', config.static.port);
+  server(routing, config.api.port);
 };
 main();

@@ -2,14 +2,6 @@
 
 const pg = require('pg');
 
-const pool = new pg.Pool({
-  host: 'localhost',
-  port: 5432,
-  user: 'marcus',
-  password: 'marcus',
-  database: 'example',
-});
-
 const parseRecord = (record, parser) => {
   const keys = Object.keys(record);
   const nums = Array(keys.length);
@@ -22,7 +14,7 @@ const parseRecord = (record, parser) => {
   return { keys, data, nums };
 };
 
-const db = (table) => ({
+const db = (pool) => (table) => ({
   async query(sql, args) {
     return pool.query(sql, args);
   },
@@ -63,4 +55,4 @@ const db = (table) => ({
   },
 });
 
-module.exports = db;
+module.exports = (opts) => db(new pg.Pool(opts));
