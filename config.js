@@ -6,6 +6,7 @@ module.exports = {
   },
   api: {
     port: 8001,
+    transport: 'http', // http or ws
   },
   sandbox: {
     timeout: 5000,

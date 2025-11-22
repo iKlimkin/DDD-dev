@@ -1,9 +1,8 @@
 'use strict';
 
-const console = require('./logger.js');
 const { Server } = require('ws');
 
-module.exports = (routing, port) => {
+module.exports = (routing, port, console) => {
   const wss = new Server({ port }, () => {
     console.log(`WebSocket server is running on port ${port}`);
   });

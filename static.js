@@ -3,49 +3,45 @@
 const http = require('node:http');
 const path = require('node:path');
 const fsp = require('node:fs/promises');
-const console = require('./logger.js');
 
-module.exports = (root, port) => {
+const MIME_TYPES = {
+  html: 'text/html; charset=UTF-8',
+  json: 'application/json; charset=UTF-8',
+  js: 'application/javascript; charset=UTF-8',
+  css: 'text/css',
+  png: 'image/png',
+  ico: 'image/x-icon',
+  svg: 'image/svg+xml',
+};
+
+const HEADERS = {
+  'X-XSS-Protection': '1; mode=block',
+  'X-Content-Type-Options': 'nosniff',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubdomains; preload',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+module.exports = (root, port, console) => {
   http
     .createServer(async (req, res) => {
-      let url = req.url === '/' ? '/index.html' : req.url;
-
-      if (url.startsWith('/')) {
-        url = url.slice(1);
-      }
+      const url = req.url === '/' ? '/index.html' : req.url;
       const filePath = path.join(root, url);
-
-      if (url.includes('.well-known') || url.includes('favicon.ico')) {
-        res.statusCode = 404;
-        return res.end();
-      }
-
       try {
         const data = await fsp.readFile(filePath);
-
-        if (url.endsWith('.js')) {
-          res.setHeader('Content-Type', 'application/javascript');
-        } else if (url.endsWith('.html')) {
-          res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        } else if (url.endsWith('.svg')) {
-          res.setHeader('Content-Type', 'image/svg+xml');
-        } else if (url.endsWith('.css')) {
-          res.setHeader('Content-Type', 'text/css');
-        } else if (url.endsWith('.json')) {
-          res.setHeader('Content-Type', 'application/json');
-        }
-
+        const fileExt = path.extname(filePath).substring(1);
+        const mimeType = MIME_TYPES[fileExt] || MIME_TYPES.html;
+        res.writeHead(200, { ...HEADERS, 'Content-Type': mimeType });
         res.end(data);
-      } catch (error) {
-        console.error(error);
-        if (!url.includes('.well-known') && !url.includes('favicon')) {
-          console.error(`404: ${url}`);
+      } catch (e) {
+        if (e.code === 'ENOENT') {
+          res.writeHead(404, HEADERS);
+          return void res.end('Not found');
         }
-        res.statusCode = 404;
-        res.end('"File is not found"');
       }
     })
     .listen(port, () => {
-      console.log(`Static on port ${port}`);
+      console.system(`Static on port ${port}`);
     });
 };

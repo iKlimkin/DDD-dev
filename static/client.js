@@ -1,10 +1,39 @@
 'use strict';
 
-const console = require('../logger.js');
-// connect to debugger server
-const socket = new WebSocket('ws://127.0.0.1:8001/');
+const transport = {};
 
-const scaffold = (structure) => {
+const http = (url) => async (structure) => {
+  const api = {};
+  const services = Object.keys(structure);
+  for (const serviceName of services) {
+    api[serviceName] = {};
+    const service = structure[serviceName];
+    const methods = Object.keys(service);
+    for (const methodName of methods) {
+      api[serviceName][methodName] = (...args) => {
+        const fields = structure[serviceName][methodName];
+        const body = fields.reduce(
+          (acc, field, i) => ({ ...acc, [field]: args[i] }),
+          {},
+        );
+        return new Promise((resolve, reject) => {
+          fetch(`${url}/api/${serviceName}/${methodName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          }).then((response) => {
+            if (response.status === 200) resolve(response.json());
+            else reject(new Error(`Status code: ${response.status}`));
+          });
+        });
+      };
+    }
+  }
+  return api;
+};
+
+const ws = (url) => async (structure) => {
+  const socket = new WebSocket(url);
   const api = {};
   const services = Object.keys(structure);
   for (const serviceName of services) {
@@ -23,32 +52,43 @@ const scaffold = (structure) => {
         });
     }
   }
-  return api;
+  return new Promise((resolve) => {
+    socket.addEventListener('open', () => resolve(api));
+  });
 };
 
-const api = scaffold({
-  user: {
-    create: null,
-    read: null,
-    update: null,
-    delete: null,
-    find: null,
-  },
-  country: {
-    create: null,
-    read: null,
-    find: null,
-  },
-  city: {
-    create: null,
-    read: null,
-    find: null,
-  },
-});
+Object.assign(transport, { http, ws });
 
-socket.onopen = async (event) => {
-  console.log('api', api);
-  console.log('event', event);
-  console.log('WebSocket connected');
-  // await api.user.read();
+const scaffold = (url) => {
+  const protocol = url.startsWith('ws:') ? 'ws' : 'http';
+  return transport[protocol](url);
 };
+
+const main = async () => {
+  const structure = {
+    user: {
+      create: null,
+      read: null,
+      update: null,
+      delete: null,
+      find: null,
+    },
+    country: {
+      create: null,
+      read: null,
+      find: null,
+    },
+    city: {
+      create: null,
+      read: null,
+      find: null,
+    },
+    health: {
+      check: ['message'],
+    },
+  };
+  const api = await scaffold('http://localhost:8001')(structure);
+  const data = await api.health.check('Health check');
+  console.log('Running status: ', data.status);
+};
+main();
