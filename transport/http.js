@@ -31,7 +31,7 @@ module.exports = (routing, port, console) => {
       const signature = src.slice(0, src.indexOf(')'));
       if (signature.includes('(id')) args.push(body.id);
       if (signature.includes('{')) args.push(body);
-      console.log(`${socket.remoteAddress} - ${name}.${method}(${args})`);
+      console.log(`${socket.remoteAddress} - ${name}.${method}`);
       const result = await handler.apply(entity, args);
       res.end(JSON.stringify(result));
     })

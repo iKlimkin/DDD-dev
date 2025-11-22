@@ -1,6 +1,7 @@
+const db = require('../db.js').db;
 const users = db('users');
 
-({
+const userService = {
   async read(id) {
     return await users.read(id, ['id', 'login']);
   },
@@ -25,4 +26,6 @@ const users = db('users');
     const result = await users.query(sql, [`%${mask}%`]);
     return result.rows;
   },
-});
+};
+
+module.exports = userService;

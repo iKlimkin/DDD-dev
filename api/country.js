@@ -1,6 +1,7 @@
+const db = require('../db.js').db;
 const country = db('country');
 
-({
+const countryService = {
   async create({ name }) {
     return await country.create({ name });
   },
@@ -14,4 +15,6 @@ const country = db('country');
     const result = await country.query(sql, [`%${mask}%`]);
     return result.rows;
   },
-});
+};
+
+module.exports = countryService;
