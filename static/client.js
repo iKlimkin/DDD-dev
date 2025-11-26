@@ -32,7 +32,7 @@ const http = (url) => async (structure) => {
   return api;
 };
 
-const ws = (url) => async (structure) => {
+const ws = (url) => (structure) => {
   const socket = new WebSocket(url);
   const api = {};
   const services = Object.keys(structure);
@@ -61,7 +61,13 @@ const ws = (url) => async (structure) => {
         });
     }
   }
+
   return new Promise((resolve) => {
+    if (socket.readyState === WebSocket.OPEN) {
+      resolve(api);
+      return;
+    }
+
     socket.addEventListener('open', () => resolve(api));
   });
 };
@@ -101,6 +107,7 @@ const main = async () => {
     http: 'http://localhost:8001/',
   };
   const api = await scaffold(urls.ws)(structure);
+  window.api = api;
   const data = await api.health.check('Health check');
   console.log('Running status: ', data.status);
 };
