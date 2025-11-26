@@ -1,6 +1,5 @@
 'use strict';
 
-const console = require('../logger.js');
 // connect to debugger server
 const socket = new WebSocket('ws://127.0.0.1:8001/');
 
@@ -50,5 +49,4 @@ socket.onopen = async (event) => {
   console.log('api', api);
   console.log('event', event);
   console.log('WebSocket connected');
-  // await api.user.read();
 };
