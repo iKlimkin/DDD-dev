@@ -17,6 +17,7 @@ const main = async () => {
     const filePath = path.join(apiPath, fileName);
     const serviceName = path.basename(fileName, '.js');
     routing[serviceName] = require(filePath);
+    logger.debug(`Loaded service: ${serviceName}`);
   }
 
   staticServer('./static', config.static.port, logger);

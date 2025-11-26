@@ -43,7 +43,16 @@ const ws = (url) => async (structure) => {
     for (const methodName of methods) {
       api[serviceName][methodName] = (...args) =>
         new Promise((resolve) => {
-          const packet = { name: serviceName, method: methodName, args };
+          const fields = structure[serviceName][methodName];
+          const payload = fields?.reduce(
+            (acc, field, i) => ({ ...acc, [field]: args[i] }),
+            {},
+          );
+          const packet = {
+            name: serviceName,
+            method: methodName,
+            args: [payload],
+          };
           socket.send(JSON.stringify(packet));
           socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -87,7 +96,11 @@ const main = async () => {
       check: ['message'],
     },
   };
-  const api = await scaffold('http://localhost:8001')(structure);
+  const urls = {
+    ws: 'ws://127.0.0.1:8001/',
+    http: 'http://localhost:8001/',
+  };
+  const api = await scaffold(urls.ws)(structure);
   const data = await api.health.check('Health check');
   console.log('Running status: ', data.status);
 };
