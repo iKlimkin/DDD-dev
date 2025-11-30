@@ -19,6 +19,11 @@ module.exports = {
     password: 'marcus',
     database: 'example',
   },
+  pg: {
+    database: 'postgres',
+    user: 'postgres',
+    password: 'postgres',
+  },
   logger: {
     path: './log',
   },

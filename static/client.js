@@ -2,57 +2,42 @@
 
 const transport = {};
 
-const http = (url) => async (structure) => {
+transport.http = (url) => (structure) => {
   const api = {};
   const services = Object.keys(structure);
-  for (const serviceName of services) {
-    api[serviceName] = {};
-    const service = structure[serviceName];
+  for (const name of services) {
+    api[name] = {};
+    const service = structure[name];
     const methods = Object.keys(service);
-    for (const methodName of methods) {
-      api[serviceName][methodName] = (...args) => {
-        const fields = structure[serviceName][methodName];
-        const body = fields.reduce(
-          (acc, field, i) => ({ ...acc, [field]: args[i] }),
-          {},
-        );
-        return new Promise((resolve, reject) => {
-          fetch(`${url}/api/${serviceName}/${methodName}`, {
+    for (const method of methods) {
+      api[name][method] = (...args) =>
+        new Promise((resolve, reject) => {
+          fetch(`${url}/api/${name}/${method}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          }).then((response) => {
-            if (response.status === 200) resolve(response.json());
-            else reject(new Error(`Status code: ${response.status}`));
+            body: JSON.stringify({ args }),
+          }).then((res) => {
+            if (res.status === 200) resolve(res.json());
+            else reject(new Error(`Status Code: ${res.status}`));
           });
         });
-      };
     }
   }
-  return api;
+  return Promise.resolve(api);
 };
 
-const ws = (url) => (structure) => {
+transport.ws = (url) => (structure) => {
   const socket = new WebSocket(url);
   const api = {};
   const services = Object.keys(structure);
-  for (const serviceName of services) {
-    api[serviceName] = {};
-    const service = structure[serviceName];
+  for (const name of services) {
+    api[name] = {};
+    const service = structure[name];
     const methods = Object.keys(service);
-    for (const methodName of methods) {
-      api[serviceName][methodName] = (...args) =>
+    for (const method of methods) {
+      api[name][method] = (...args) =>
         new Promise((resolve) => {
-          const fields = structure[serviceName][methodName];
-          const payload = fields?.reduce(
-            (acc, field, i) => ({ ...acc, [field]: args[i] }),
-            {},
-          );
-          const packet = {
-            name: serviceName,
-            method: methodName,
-            args: [payload],
-          };
+          const packet = { name, method, args };
           socket.send(JSON.stringify(packet));
           socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -61,18 +46,10 @@ const ws = (url) => (structure) => {
         });
     }
   }
-
   return new Promise((resolve) => {
-    if (socket.readyState === WebSocket.OPEN) {
-      resolve(api);
-      return;
-    }
-
     socket.addEventListener('open', () => resolve(api));
   });
 };
-
-Object.assign(transport, { http, ws });
 
 const scaffold = (url) => {
   const protocol = url.startsWith('ws:') ? 'ws' : 'http';
@@ -80,35 +57,18 @@ const scaffold = (url) => {
 };
 
 const main = async () => {
-  const structure = {
-    user: {
-      create: null,
-      read: null,
-      update: null,
-      delete: null,
-      find: null,
+  const api = await scaffold('http://localhost:8001')({
+    auth: {
+      signin: ['login', 'password'],
+      signout: [],
+      restore: ['token'],
     },
-    country: {
-      create: null,
-      read: null,
-      find: null,
+    messenger: {
+      method: ['arg'],
     },
-    city: {
-      create: null,
-      read: null,
-      find: null,
-    },
-    health: {
-      check: ['message'],
-    },
-  };
-  const urls = {
-    ws: 'ws://127.0.0.1:8001/',
-    http: 'http://localhost:8001/',
-  };
-  const api = await scaffold(urls.ws)(structure);
-  window.api = api;
-  const data = await api.health.check('Health check');
-  console.log('Running status: ', data.status);
+  });
+  const data = await api.auth.signin('marcus', 'marcus');
+  console.dir({ data });
 };
+
 main();

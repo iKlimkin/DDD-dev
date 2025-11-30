@@ -1,12 +1,21 @@
 'use strict';
-const fsp = require('node:fs/promises');
+
+const fsp = require('node:fs').promises;
 const path = require('node:path');
-const staticServer = require('./static.js');
+const staticServer = require('./lib/static.js');
 const config = require('./config.js');
-require('./db.js').init(config.db);
-const logger = require('./logger.js')(config.logger.path);
+const logger = require('./lib/logger.js')(config.logger.path);
+const common = require('./lib/common.js');
+const load = require('./lib/load.js')(config.sandbox);
+const db = require('./lib/db.js')(config.db);
 const transport = require(`./transport/${config.api.transport}.js`);
 
+const sandbox = {
+  api: Object.freeze({}),
+  db: Object.freeze(db),
+  console: Object.freeze(logger),
+  common: Object.freeze(common),
+};
 const apiPath = path.join(process.cwd(), './api');
 const routing = {};
 
@@ -16,11 +25,11 @@ const main = async () => {
     if (!fileName.endsWith('.js')) continue;
     const filePath = path.join(apiPath, fileName);
     const serviceName = path.basename(fileName, '.js');
-    routing[serviceName] = require(filePath);
-    logger.debug(`Loaded service: ${serviceName}`);
+    routing[serviceName] = await load(filePath, sandbox);
   }
 
   staticServer('./static', config.static.port, logger);
   transport(routing, config.api.port, logger);
 };
+
 main();
